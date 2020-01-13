@@ -1,0 +1,97 @@
+#include <Servo.h> 
+#define MAX 450
+
+Servo horizontal; // horizontal servo
+int servoh = 90; // stand horizontal servo
+// LDR pin connections
+int left_sensor =0;//A0 
+int right_sensor =1;//A1
+int threshold=100;//
+int tol=10;
+int left_light =13;//A0 
+int right_light =12;//A1
+
+int avr =0;
+ int avl  =0;
+ int dhoriz =0;
+int prev_avr=0;
+int prev_avl=0;
+int counter=0;
+
+
+void setup()
+{
+  Serial.begin(9600);
+// servo connections
+  horizontal.attach(9); 
+  pinMode(left_light,OUTPUT);
+  pinMode(right_light,OUTPUT);
+  
+}
+
+void loop()
+{
+  
+  if(counter==0){ 
+    prev_avr=avr;
+    prev_avl=avl;
+    avr =1000- log(analogRead(right_sensor))/log(2)*100; // right
+    avl  =1000- log(analogRead(left_sensor))/log(2)*100; // left
+  
+    //Serial.print("avl:");Serial.println(avl);
+    //Serial.print(" avr:");Serial.println(avr);
+    //Serial.println();
+    counter=0;
+    if(prev_avl!=avl || prev_avr!=avr){
+      Serial.print("avl:");Serial.println(avl);
+      Serial.print("avr:");Serial.println(avr);
+      //Serial.println();
+      dhoriz = (avl - avr+(prev_avr-prev_avl))*90.0/MAX;// check the diffirence left and rigth
+      counter=dhoriz;
+      Serial.print("START counter:");Serial.println(counter);
+      Serial.println();
+    }
+  }
+  //if (  counter!=0 || dhoriz <-tol || dhoriz > tol){ // check if the diffirence is in the tolerance else change horizontal angle
+	
+    if (avl -prev_avl> avr -prev_avr && counter!=0){//avl > avr || 
+      counter--;
+		servoh = ++servoh;
+		if (servoh >180){
+			servoh = 180;
+          counter=0;
+		}
+      if(counter!=0){
+        digitalWrite(left_light,HIGH);
+        digitalWrite(right_light,LOW);
+      }
+      else{
+        digitalWrite(left_light,LOW);
+        digitalWrite(right_light,LOW);
+      }
+	}
+	else if (avl -prev_avl < avr -prev_avr  && counter!=0){//avl < avr ||
+      counter++;
+		servoh = --servoh;
+		if (servoh <0){
+			servoh = 0;
+          counter=0;
+		}
+      if(counter!=0){
+        digitalWrite(right_light,HIGH);
+        digitalWrite(left_light,LOW);
+      }
+      else{
+        digitalWrite(left_light,LOW);
+        digitalWrite(right_light,LOW);
+      }
+	}
+    if(counter!=0 && servoh!=0 && servoh!=180){
+      
+		horizontal.write(servoh);
+      //Serial.print("counter:");Serial.println(counter);
+    	delay(1);
+    }
+  
+  delay(19);
+}
